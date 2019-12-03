@@ -1,0 +1,56 @@
+use std::io::{self, Read};
+
+
+fn read_stdin() -> String{
+	let mut buffer = String::new();
+	io::stdin().read_to_string(&mut buffer).expect("did not recieve anything from stdin");
+	return buffer.clone()
+}
+
+#[derive(Debug)]
+enum Direction {
+	Up,
+	Right,
+	Down,
+	Left
+}
+
+#[derive(Debug)]
+struct Instruction {
+	dir: Direction,
+	distance: usize
+}
+
+struct Coordinate {
+	x: usize,
+	y: usize
+}
+
+fn parse_to_instructions(raw_input: &str) -> Vec<Instruction>{
+	return 
+		raw_input.split(",")
+		.map(|s| 
+			
+			Instruction {
+				dir: match (s as Vec<&str>)[0 as usize]{
+					"U" => Direction::Up,
+					"R" => Direction::Right,
+					"D" => Direction::Down,
+					"L" => Direction::Left,	
+					_ => panic!("found a non-existing direction") 
+				},
+				distance: 
+					(s as Vec<&str>)
+					.iter()
+					.skip(1)
+					.parse::<usize>()
+					.expect("could not parse argument inso an integer")
+			}
+
+		).collect();
+}
+
+fn main (){
+	let input: Vec<Instruction> = parse_to_instructions(read_stdin().trim());	
+	print!("{:?}", input);
+}
