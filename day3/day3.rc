@@ -22,37 +22,38 @@ struct Instruction {
 }
 
 impl Instruction{
-	fn can_cross(&self, other: &Instruction) -> bool{
-		if self.direction == Direction::Up || self.direction == Direction::Down{
-			return other.direction == Direction::Right || other.direction == Direction::Left;
-		}
-		return other.direction == Direction::Up || other.direction == Direction::Down;
-		
+	fn moves_horizontally(&self) -> bool{
+		return self.direction == Direction::Left || self.direction == Direction::Right;
+	}
+	fn dy(&self) -> i64{
+		return match self.direction{
+			Direction::Up => self.distance,
+			Direction::Down => -self.distance,
+			_ => 0 
+		};	
+	}
+	fn dx(&self) -> i64{
+		return match self.direction{
+			Direction::Right => self.distance,
+			Direction::Left => -self.distance,
+			_ => 0 
+		};	
 	}
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 struct Coordinate {
 	x: i64,
 	y: i64
 }
 
 impl Coordinate{
-	fn move_to(&self, inst: &Instruction) -> Coordinate{
-		let new_x: i64 = 
-			match inst.direction{
-				Direction::Right => self.x + inst.distance,
-				Direction::Left => self.x - inst.distance,
-				_ => self.x
-			};	
-		let new_y: i64 = 
-			match inst.direction{
-				Direction::Up => self.y + inst.distance,
-				Direction::Down => self.y - inst.distance,
-				_ => self.y 
-			};	
-		return Coordinate {x: new_x, y: new_y}; 
+	fn move_with(&self, inst: &Instruction) -> Coordinate{
+		return Coordinate {x: self.x + inst.dx(), y: self.y + inst.dy()}; 
+	}
+	fn distance_to(&self, other: &Coordinate) -> usize{
+		return (self.x - other.x).abs() as usize + (self.y - other.y).abs() as usize; 
 	}
 }
 
@@ -81,30 +82,101 @@ fn parse_to_instructions(raw_input: &str) -> Vec<Vec<Instruction>>{
 		).collect();
 }
 
-fn find_intersection(position1: Coordinate, inst1: Instruction, position2: Coordinate, inst2: Instruction) -> Option<Coordinate>{
-	
+fn between(a: i64, point1: i64, point2: i64) -> bool{
+	return 
+		(point1 <= a && a <= point2) ||
+		(point2 <= a && a <= point1) 
 }
 
-fn find_intersections(first_path: &Vec<Instruction>, second_path: &Vec<Instruction>) -> Option<Vec<Coordinate>>{
-	let mut position1 = Coordinate {x: 0, y: 0};
-	let mut intersections: Vec<Coordinate> = vec![position.clone()];
+fn find_intersection_help(p1: &Coordinate, d1: &Instruction, p2: &Coordinate, d2: &Instruction) -> Option<Coordinate>{	
+	if 
+		d1.dx() == 0 && d2.dy() == 0 &&
+		between(p1.x, p2.x, p2.move_with(d2).x) &&
+		between(p2.y, p1.y, p1.move_with(d1).y){
+		
+		return Some(Coordinate {x: p1.x, y: p2.y})	
+	}
+	return None;
+}
+
+fn find_intersection(p1: &Coordinate, d1: &Instruction, p2: &Coordinate, d2: &Instruction) -> Option<Coordinate>{	
 	
+	return 
+		find_intersection_help(p1,d1,p2,d2)
+		.or(find_intersection_help(p2,d2,p1,d1));	
+	
+}
+fn find_intersections(first_path: &Vec<Instruction>, second_path: &Vec<Instruction>) -> Vec<(Coordinate, usize)>{
+	let mut position1 = Coordinate {x: 0, y: 0};
+	let mut intersections: Vec<(Coordinate, usize)> = vec![];
+	let mut next_position1;
+	let mut length_traveled1: usize = 0;
+
 	for path1_inst in first_path{
+		next_position1 = position1.move_with(path1_inst);
 		let mut position2 = Coordinate {x: 0, y: 0};
+		let mut length_traveled2: usize = 0;
+
 		for path2_inst in second_path{
-			if path1_inst.can_cross(path2_inst){
-							
-			}	
-			position2 = position2.move_to(path2_inst);
+			let next_position2 = position2.move_with(path2_inst);
+			match find_intersection(&position1, path1_inst, &position2, path2_inst) {
+				Some(c) => intersections.push(
+					(c, 
+					length_traveled1 + length_traveled2 + position1.distance_to(&c) + position2.distance_to(&c))),
+				None => ()
+			};
+			position2 = next_position2;
+			length_traveled2 = length_traveled2 + path2_inst.distance as usize;
 		}
-		position1 = position1.move_to(path1_inst);	
+		position1 = next_position1;	
+		length_traveled1 = length_traveled1 + path1_inst.distance as usize;
 	}
 	
-	return Some(intersections);
+	return intersections;
+}
+fn best_answer_part2(answers: &Vec<(Coordinate, usize)>) -> Option<usize>{
+	let mut best: Option<usize> = None;
+
+	for a in answers
+		.iter()
+		.map(|t| t.1)
+		.filter(|c| c != &usize::from(0 as u8)){
+		match best{
+			Some(c) => {
+				if a < c {
+					best = Some(a)
+				} 
+			} 
+			None => best = Some(a.clone())
+		};
+	}
+	return best;
+}
+fn best_answer_part1(answers: &Vec<(Coordinate, usize)>) -> Option<Coordinate>{
+	let mut best: Option<Coordinate> = None;
+
+	for a in answers
+		.iter()
+		.map(|t| t.0)
+		.filter(|c| !(c.x == 0 && c.y == 0)){
+		match best{
+			Some(c) => {
+				if (a.x.abs() + a.y.abs()) < (c.x.abs() + c.y.abs()){
+					best = Some(a.clone())
+				} 
+			} 
+			None => best = Some(a.clone())
+		};
+	}
+	return best;
 }
 
 fn main (){
 	let input: Vec<Vec<Instruction>> = parse_to_instructions(read_stdin().trim());	
+	let potential_answers = find_intersections(&input[0], &input[1]);
+
 	print!("Calculating results...\n");
-	print!("{:?}\n", find_intersections(&input[0], &input[1]));
+	
+	print!("{:?}\n", best_answer_part1(&potential_answers));
+	print!("{:?}\n", best_answer_part2(&potential_answers));
 }
