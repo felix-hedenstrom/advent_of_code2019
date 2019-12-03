@@ -7,7 +7,7 @@ fn read_stdin() -> String{
 	return buffer.clone()
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum Direction {
 	Up,
 	Right,
@@ -17,40 +17,94 @@ enum Direction {
 
 #[derive(Debug)]
 struct Instruction {
-	dir: Direction,
-	distance: usize
+	direction: Direction,
+	distance: i64
 }
 
+impl Instruction{
+	fn can_cross(&self, other: &Instruction) -> bool{
+		if self.direction == Direction::Up || self.direction == Direction::Down{
+			return other.direction == Direction::Right || other.direction == Direction::Left;
+		}
+		return other.direction == Direction::Up || other.direction == Direction::Down;
+		
+	}
+}
+
+
+#[derive(Debug, Clone)]
 struct Coordinate {
-	x: usize,
-	y: usize
+	x: i64,
+	y: i64
 }
 
-fn parse_to_instructions(raw_input: &str) -> Vec<Instruction>{
-	return 
-		raw_input.split(",")
-		.map(|s| 
-			
-			Instruction {
-				dir: match (s as Vec<&str>)[0 as usize]{
-					"U" => Direction::Up,
-					"R" => Direction::Right,
-					"D" => Direction::Down,
-					"L" => Direction::Left,	
-					_ => panic!("found a non-existing direction") 
-				},
-				distance: 
-					(s as Vec<&str>)
-					.iter()
-					.skip(1)
-					.parse::<usize>()
-					.expect("could not parse argument inso an integer")
-			}
+impl Coordinate{
+	fn move_to(&self, inst: &Instruction) -> Coordinate{
+		let new_x: i64 = 
+			match inst.direction{
+				Direction::Right => self.x + inst.distance,
+				Direction::Left => self.x - inst.distance,
+				_ => self.x
+			};	
+		let new_y: i64 = 
+			match inst.direction{
+				Direction::Up => self.y + inst.distance,
+				Direction::Down => self.y - inst.distance,
+				_ => self.y 
+			};	
+		return Coordinate {x: new_x, y: new_y}; 
+	}
+}
 
+fn parse_to_instructions(raw_input: &str) -> Vec<Vec<Instruction>>{
+	return 
+		raw_input
+		.split("\n")
+		.map(|line|
+			line	
+			.split(",")
+			.map(|s| 
+				Instruction {
+					direction: match s.chars().next().unwrap() {
+						'U' => Direction::Up,
+						'R' => Direction::Right,
+						'D' => Direction::Down,
+						'L' => Direction::Left,	
+						_ => panic!("found a non-existing direction") 
+					},
+					distance: 
+						s[1..]
+						.parse::<i64>()
+						.expect("could not parse argument inso an integer"),
+				}
+			).collect()
 		).collect();
 }
 
+fn find_intersection(position1: Coordinate, inst1: Instruction, position2: Coordinate, inst2: Instruction) -> Option<Coordinate>{
+	
+}
+
+fn find_intersections(first_path: &Vec<Instruction>, second_path: &Vec<Instruction>) -> Option<Vec<Coordinate>>{
+	let mut position1 = Coordinate {x: 0, y: 0};
+	let mut intersections: Vec<Coordinate> = vec![position.clone()];
+	
+	for path1_inst in first_path{
+		let mut position2 = Coordinate {x: 0, y: 0};
+		for path2_inst in second_path{
+			if path1_inst.can_cross(path2_inst){
+							
+			}	
+			position2 = position2.move_to(path2_inst);
+		}
+		position1 = position1.move_to(path1_inst);	
+	}
+	
+	return Some(intersections);
+}
+
 fn main (){
-	let input: Vec<Instruction> = parse_to_instructions(read_stdin().trim());	
-	print!("{:?}", input);
+	let input: Vec<Vec<Instruction>> = parse_to_instructions(read_stdin().trim());	
+	print!("Calculating results...\n");
+	print!("{:?}\n", find_intersections(&input[0], &input[1]));
 }

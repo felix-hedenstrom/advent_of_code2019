@@ -50,8 +50,8 @@ fn main (){
 			s.parse::<usize>().expect("of of the lines of the input could not be parsed into an integer") 
 		).collect();
 	
-	for i in 0..1000{
-		for j in i..1000{
+	for i in 0..99{
+		for j in i..99{
 			let mut update_indexes = input.clone();	
 			
 			update_indexes[1] = i;
