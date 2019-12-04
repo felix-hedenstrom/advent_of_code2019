@@ -101,10 +101,8 @@ fn passes_tests(n: u64) -> bool{
 	let d = Digits::new(n);
 	return atleast_two_adjacent(&d) && is_ascending(&d);
 }
-fn passes_tests_part2(n: u64) -> bool{
-
-	let d = Digits::new(n);
-	return is_ascending(&d) && only_two_adjacent(&d);
+fn passes_tests_part2(n: &Digits) -> bool{
+	return only_two_adjacent(n);
 }
 
 fn main (){
@@ -124,7 +122,7 @@ fn main (){
 	let mut n = Digits::new(233333);
 		
 	while n.to_int() < 767346{
-		if passes_tests_part2(n.to_int() as u64){
+		if passes_tests_part2(&n){
 			count += 1
 		}
 		n = n.next_ascending();
