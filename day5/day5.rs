@@ -7,73 +7,109 @@ fn read_stdin() -> String{
 	return buffer.clone()
 }
 
+#[derive(Debug)]
+enum Mode{
+    Position,
+    Immediate    
+}
 
-fn execute_opcodes(instruction_pointer: usize, opcodes: Vec<usize>) -> Result<Vec<usize>, ()> {
-        fn code_3(instruction_pointer: usize, mut opcodes: Vec<usize>){
-            let input = opcodes[instruction_pointer];
+#[derive(Debug)]
+enum Operation{
+    Addition,
+    Multiplication,
+    Store,
+    Output
+}
 
-            opcodes[input] = input;
+#[derive(Debug)]
+struct Parameter{
+    mode: Mode,
+    value: i64 
+}
+#[derive(Debug)]
+struct Instruction{
+    operation: Operation,
+    parameters: Vec<Parameter>,
+    size: usize
+}
+
+impl Instruction{
+    fn new(counter: i64, opcodes: &Vec<i64>) -> Option<Instruction>{
+        let raw_op = opcodes[counter as usize];
+
+        let (op, op_size): (Operation, usize) = match raw_op % 10 {
+            1 => (Operation::Addition, 4),
+            2 => (Operation::Multiplication, 4),
+            3 => (Operation::Store, 2),
+            4 => (Operation::Output, 2),
+            n => panic!("recieved bad operation: {}", n)
+        };
+       
+        // We've read all possible instructions
+        if !(counter as usize + op_size < opcodes.len()){
+            return None;
         }
-        fn code_4(instruction_pointer: usize, mut opcodes: Vec<usize>){
-            let input = opcodes[instruction_pointer];
 
-            opcodes[input] = input;
-        }
-	if instruction_pointer + 3 > opcodes.len() - 1{
-		return Ok(opcodes);
-	} 
+        let mut op_as_string: Vec<i64> = 
+            raw_op
+            .to_string()
+            .split("")
+            .map(|c| c.parse::<i64>().unwrap())
+            .collect();
 
-	let mut new_opcodes = opcodes.clone();
-	
-	let operation = opcodes[instruction_pointer];
-	let data1_address = opcodes[instruction_pointer + 1];
-	let data2_address = opcodes[instruction_pointer + 2];
-	let write_address = opcodes[instruction_pointer + 3];
+        op_as_string.reverse();
+            
 
 
-	if write_address > opcodes.len() - 1{
-		return Err(());
-	} 
-	if data1_address > opcodes.len() - 1 || data2_address > opcodes.len() - 1{
-		return Err(());
-	}
+        let parameters: Vec<Parameter> = 
+            (2..op_size)
+            .map(|i| 
+                Parameter{ 
+                    mode: 
+                        match op_as_string.get(i as usize).unwrap_or(&0){
+                            1 => Mode::Immediate,
+                            0 => Mode::Position,
+                            _ => panic!("found a number that should not exist")
+                        },
+                    value:
+                        opcodes[counter as usize + i as usize - 1]
+                } 
+            ).collect();
 
-	let data1 = opcodes[data1_address];
-	let data2 = opcodes[data2_address];
+        //TODO
+        return Some(Instruction {operation: op, parameters: vec![], size: op_size});
+    }
+}
 
+fn address_counter(opcodes: &Vec<i64>) -> Vec<i64> {
+    fn address_counter_internal(counter: i64, opcodes: Vec<i64>) -> Vec<i64>{
+        let inst = Instruction::new(counter, &opcodes).unwrap_or({return opcodes});
 
-	match operation {
-		1 => new_opcodes[write_address] = data1 + data2,
-		2 => new_opcodes[write_address] = data1 * data2,
-                3 => code_3(instruction_pointer, new_opcodes), 
-                4 => code_4(instruction_pointer, new_opcodes), 
-		_ => () 
-	};
-	return execute_opcodes(instruction_pointer + 4, new_opcodes);
-	
+        let new_opcodes: Vec<i64> = 
+                execute_instruction(
+                    &inst, 
+                    opcodes
+            );
+        print!("{:?}", inst);
+        return address_counter_internal(counter + inst.size as i64, new_opcodes); 
+    }
+    return address_counter_internal(0, opcodes.clone());
+
+}
+
+fn execute_instruction(ins: &Instruction, opcodes: Vec<i64>) -> Vec<i64>{
+    return opcodes;
 }
 
 fn main (){
-	let input: Vec<usize> =
+	let input: Vec<i64> =
 		read_stdin()
 		.trim()
 		.split(",")
 		.map(|s| 
-			s.parse::<usize>().expect("of of the lines of the input could not be parsed into an integer") 
+			s.parse::<i64>().expect("of of the lines of the input could not be parsed into an integer") 
 		).collect();
 	
-	for i in 0..99{
-		for j in i..99{
-			let mut update_indexes = input.clone();	
-			
-			update_indexes[1] = i;
-			update_indexes[2] = j;
-			let answer = execute_opcodes(0, update_indexes.clone()).unwrap_or(vec![0]); 
-			//print!("{:?}\n", answer);
-				
-			if answer[0] == 19690720{
-				print!("noun: {}, verb: {}, answer: {}", i, j, i * 100 + j);
-			}
-		}
-	} 	
+    let answer = address_counter(&input); 
+    print!("answer: {:?}", answer); 				
 }
