@@ -1,6 +1,6 @@
 use std::io::{self, Read};
 
-
+#[allow(dead_code)]
 fn read_stdin() -> String{
 	let mut buffer = String::new();
 	io::stdin().read_to_string(&mut buffer).expect("did not recieve anything from stdin");
@@ -132,6 +132,7 @@ impl State {
     pub fn is_halted(&self) -> bool{
         return !(self.address < self.opcodes.len() as i64); 
     }
+    #[allow(dead_code)]
     pub fn get_input(&self) -> &Vec<i64>{
         return &self.input;
     }
@@ -274,7 +275,7 @@ impl State {
     }
 }
 
-
+#[allow(dead_code)]
 fn main (){
     let io_input: Vec<i64> =
             read_stdin()

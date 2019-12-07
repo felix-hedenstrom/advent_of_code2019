@@ -57,7 +57,7 @@ fn max_signal_p2(opcodes: &Vec<i64>, setting_sequence: &Vec<i64>, input_signal: 
 
     let mut states: Vec<Option<State>> = vec![None, None, None, None, None];
 
-    while true {
+    loop {
         for i in 0..(setting_sequence.len()){
             if states[i].as_ref().map_or(false, |s| s.is_halted()){
                 return latest_end_signal;
@@ -85,8 +85,6 @@ fn max_signal_p2(opcodes: &Vec<i64>, setting_sequence: &Vec<i64>, input_signal: 
         }
         latest_end_signal = signal;
     }
-
-    return latest_end_signal;
 }
 
 fn find_max_signal_p2(opcodes: &Vec<i64>, base_seq: Vec<i64>) -> i64{
