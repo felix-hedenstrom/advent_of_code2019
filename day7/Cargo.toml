@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 permutohedron = "0.2.4"
+intcode_computer = { path = "../intcode_computer/"}
 
 [[bin]]
 name = "day7"

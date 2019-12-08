@@ -1,20 +1,9 @@
+use crate::operation::Operation;
 
 #[derive(Debug, Clone)]
 enum Mode{
     Position,
     Immediate    
-}
-
-#[derive(Debug)]
-pub enum Operation{
-    Addition,
-    Multiplication,
-    Store,
-    Output,
-    JumpIfTrue,
-    JumpIfFalse,
-    LessThan,
-    Equals
 }
 
 #[derive(Debug, Clone)]

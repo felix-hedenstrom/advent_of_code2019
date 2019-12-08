@@ -2,9 +2,9 @@ use std::io::{self, Read};
 
 use permutohedron::heap_recursive;
 
-mod day5;
+extern crate intcode_computer;
 
-use day5::{address_counter, State};
+use intcode_computer::{address_counter, State};
 
 fn read_stdin() -> String{
 	let mut buffer = String::new();
