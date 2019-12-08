@@ -12,18 +12,21 @@ pub struct State{
 
 pub fn address_counter(opcodes: &Vec<i64>, input: &Vec<i64>) -> State {
 
-    let reversed_input: Vec<i64> = 
-        input
-        .iter()
-        .rev()
-        .map(|i|
-            *i
-        ).collect();
-
-    return State{ output: None, input: reversed_input, opcodes: (*opcodes).clone(), address: 0 }.process();
+    return State::new(opcodes, input).process();
 }
 
 impl State {
+    pub fn new(opcodes: &Vec<i64>, input: &Vec<i64>) -> State{
+        let reversed_input: Vec<i64> = 
+            input
+            .iter()
+            .rev()
+            .map(|i|
+                *i
+            ).collect();
+        return State{ output: None, input: reversed_input, opcodes: (*opcodes).clone(), address: 0}; 
+    }
+
     pub fn process(&self) -> State {
         let inst = 
             match Instruction::new(&self.address, &self.opcodes){
