@@ -22,8 +22,17 @@ pub struct Instruction{
 }
 
 impl Instruction{
-    pub fn get_target_address(&self) -> usize{
-        return self.parameters[self.size - 2].value as usize;
+    pub fn get_target_address(&self, relative_base: i64) -> usize{
+        let parameter = self.parameters[self.size - 2].clone(); 
+        
+       
+            
+        return match parameter.mode{
+            Mode::Position => parameter.value,
+            Mode::Immediate => parameter.value,
+            Mode::Relative => parameter.value + relative_base
+        } as usize;
+
     }
     pub fn size(&self) -> usize{
         return self.size;
@@ -37,7 +46,7 @@ impl Instruction{
                 match p.mode {
                     Mode::Position => *(st.opcodes.get(p.value as usize).unwrap_or(&0)),
                     Mode::Immediate => p.value,
-                    Mode::Relative => st.relative_base + p.value 
+                    Mode::Relative => *(st.opcodes.get( (st.relative_base + p.value) as usize).unwrap_or(&0))
                 }
             ).collect();
     }

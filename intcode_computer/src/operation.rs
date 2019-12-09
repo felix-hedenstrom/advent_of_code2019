@@ -15,7 +15,7 @@ pub enum Operation{
 }
 
 impl Operation{
-    pub fn process(&self, st: &State, ins: &Instruction) -> State{
+    pub fn process(&self, st: &mut State, ins: &Instruction){
         let operation_function = 
             match self{
                 Operation::Addition => op_addition,
@@ -29,69 +29,66 @@ impl Operation{
                 Operation::AdjustRelativeBase => op_adjust_relative_base
             };
         
-        return operation_function(st, ins);
+        operation_function(st, ins);
     }
 }
 
-fn op_adjust_relative_base(st: &State, ins: &Instruction) -> State {
+fn op_adjust_relative_base(st: &mut State, ins: &Instruction){
     let params = ins.get_parameters(st);
-    return st.update_relative_base(params[0]);
+
+    st.update_relative_base(params[0]);
+
+    st.increment_address(ins.size() as i64);
 }
 
-fn op_addition(st: &State, ins: &Instruction) -> State {
+fn op_addition(st: &mut State, ins: &Instruction){
     
     let params = ins.get_parameters(st);
 
-    return st.write(
-        ins.get_target_address(),
+    st.write(
+        ins.get_target_address(st.relative_base),
         params[0] + params[1]
-    ).increment_address(ins.size() as i64);
+    );
+    st.increment_address(ins.size() as i64);
+
 }
 
-fn op_multiplication(st: &State, ins: &Instruction) -> State {
+fn op_multiplication(st: &mut State, ins: &Instruction){
 
     let params = ins.get_parameters(st);
 
-    return st.write(
-        ins.get_target_address(),
+    st.write(
+        ins.get_target_address(st.relative_base),
         params[0] * params[1]
-    ).increment_address(ins.size() as i64);
+    );
+
+    st.increment_address(ins.size() as i64);
 }
 
-fn op_store(st: &State, ins: &Instruction) -> State{
-    
-    let mut new_input = st.input.clone();
+fn op_store(st: &mut State, ins: &Instruction){
 
-    let value = new_input.pop().expect("did not get enough inputs");
+    let value = st.input.pop().expect("did not get enough inputs");
 
-    return State{
-        input: new_input, 
-        output: st.output, 
-        opcodes: st.opcodes.clone(), 
-        address: st.address, 
-        relative_base: 
-        st.relative_base
-    }.write(
-        ins.get_target_address(),
+    st.write(
+        ins.get_target_address(st.relative_base),
         value
-    ).increment_address(ins.size() as i64);
+    );
+    st.increment_address(ins.size() as i64);
 
 }
 
-fn op_output(st: &State, ins: &Instruction) -> State{
-
+fn op_output(st: &mut State, ins: &Instruction){
 
     let params = ins.get_parameters(st);
-    return State{
-        input: st.input.clone(), 
-        output: Some(params[0]), 
-        opcodes: st.opcodes.clone(), 
-        address: st.address, 
-        relative_base: st.relative_base
-    }.increment_address(ins.size() as i64);
+
+    println!("{:?}", ins);
+    st.output.push(params[0]);
+
+    st.increment_address(ins.size() as i64);
+
 }
 
-fn op_jumpiftrue(st: &State, ins: &Instruction) -> State{
+fn op_jumpiftrue(st: &mut State, ins: &Instruction){
 
     let params = ins.get_parameters(st);
     let new_address = 
@@ -100,9 +97,9 @@ fn op_jumpiftrue(st: &State, ins: &Instruction) -> State{
             false => st.address + ins.size() as i64
 
         };
-    return st.set_address(new_address);
+    st.set_address(new_address);
 }
-fn op_jumpiffalse(st: &State, ins: &Instruction) -> State{
+fn op_jumpiffalse(st: &mut State, ins: &Instruction){
     let params = ins.get_parameters(st);
     let new_address = 
         match params[0] == 0{
@@ -110,9 +107,9 @@ fn op_jumpiffalse(st: &State, ins: &Instruction) -> State{
             false => st.address + ins.size() as i64
 
         };
-    return st.set_address(new_address);
+    st.set_address(new_address);
 }
-fn op_lessthan(st: &State, ins: &Instruction) -> State{
+fn op_lessthan(st: &mut State, ins: &Instruction){
 
     let params = ins.get_parameters(st);
     let answer: i64 = 
@@ -121,10 +118,11 @@ fn op_lessthan(st: &State, ins: &Instruction) -> State{
             false => 0
 
         };
-    return st.write(ins.get_target_address(), answer).increment_address(ins.size() as i64);
+    st.write(ins.get_target_address(st.relative_base), answer);
+    st.increment_address(ins.size() as i64);
 }
 
-fn op_equals(st: &State, ins: &Instruction) -> State{
+fn op_equals(st: &mut State, ins: &Instruction){
 
     let params = ins.get_parameters(st);
     let answer: i64 = 
@@ -134,5 +132,6 @@ fn op_equals(st: &State, ins: &Instruction) -> State{
 
         };
 
-    return st.write(ins.get_target_address(), answer).increment_address(ins.size() as i64);
+    st.write(ins.get_target_address(st.relative_base), answer);
+    st.increment_address(ins.size() as i64);
 }
