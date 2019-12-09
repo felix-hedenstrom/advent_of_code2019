@@ -29,6 +29,7 @@ impl Operation{
                 Operation::AdjustRelativeBase => op_adjust_relative_base
             };
         
+        //dbg!(ins);
         operation_function(st, ins);
     }
 }
@@ -81,7 +82,6 @@ fn op_output(st: &mut State, ins: &Instruction){
 
     let params = ins.get_parameters(st);
 
-    println!("{:?}", ins);
     st.output.push(params[0]);
 
     st.increment_address(ins.size() as i64);

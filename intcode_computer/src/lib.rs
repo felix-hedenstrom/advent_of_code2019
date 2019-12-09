@@ -39,15 +39,16 @@ impl State {
     }
 
     pub fn process(&mut self) {
-        let inst = 
-            match Instruction::new(&self.address, &self.opcodes){
-                Some(i) => i,
-                None => return
-            };
 
-        self.execute_instruction(&inst);
+        loop {
+            let inst = 
+                match Instruction::new(&self.address, &self.opcodes){
+                    Some(i) => i,
+                    None => return
+                };
+            self.execute_instruction(&inst);
+        }
 
-        self.process(); 
     }
     
     fn write(&mut self, address: usize, value: i64){
