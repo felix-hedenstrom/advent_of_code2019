@@ -1,9 +1,11 @@
 use crate::operation::Operation;
+use crate::State;
 
 #[derive(Debug, Clone)]
 enum Mode{
     Position,
-    Immediate    
+    Immediate,
+    Relative
 }
 
 #[derive(Debug, Clone)]
@@ -26,15 +28,16 @@ impl Instruction{
     pub fn size(&self) -> usize{
         return self.size;
     }
-    pub fn get_parameters(&self, opcodes: &Vec<i64>) -> Vec<i64>{
+    pub fn get_parameters(&self, st: &State) -> Vec<i64>{
         return  
             (self.parameters.clone())
             .into_iter()
             .map(
                 |p| 
                 match p.mode {
-                    Mode::Position => opcodes[p.value as usize],
-                    Mode::Immediate => p.value
+                    Mode::Position => *(st.opcodes.get(p.value as usize).unwrap_or(&0)),
+                    Mode::Immediate => p.value,
+                    Mode::Relative => st.relative_base + p.value 
                 }
             ).collect();
     }
@@ -55,6 +58,7 @@ impl Instruction{
             6 => (Operation::JumpIfFalse, 3),
             7 => (Operation::LessThan, 4),
             8 => (Operation::Equals, 4),
+            9 => (Operation::AdjustRelativeBase, 2),
             _ => return None 
         };
        
@@ -79,8 +83,9 @@ impl Instruction{
                 Parameter{ 
                     mode: 
                         match op_as_string.get(i as usize).unwrap_or(&0){
-                            1 => Mode::Immediate,
                             0 => Mode::Position,
+                            1 => Mode::Immediate,
+                            2 => Mode::Relative,
                             _ => panic!("found a number that should not exist")
                         },
                     value:

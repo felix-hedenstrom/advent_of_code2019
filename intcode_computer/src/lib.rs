@@ -6,13 +6,14 @@ use instruction::Instruction;
 #[derive(Debug, Clone)]
 pub struct State{
     input: Vec<i64>,
+    //output: Vec<i64>,
     output: Option<i64>,
     address: i64,
-    opcodes: Vec<i64>
+    opcodes: Vec<i64>,
+    relative_base: i64
 }
 
 pub fn address_counter(opcodes: &Vec<i64>, input: &Vec<i64>) -> State {
-
     return State::new(opcodes, input).process();
 }
 
@@ -25,7 +26,8 @@ impl State {
             .map(|i|
                 *i
             ).collect();
-        return State{ output: None, input: reversed_input, opcodes: (*opcodes).clone(), address: 0}; 
+
+        return State{ output: None, input: reversed_input, opcodes: (*opcodes).clone(), address: 0, relative_base: 0}; 
     }
 
     pub fn process(&self) -> State {
@@ -49,6 +51,19 @@ impl State {
     fn get_opcodes(&self) -> &Vec<i64>{
         return &self.opcodes;
     }
+    fn write(&self, address: usize, value: i64) -> State{
+        let mut opcodes = self.get_opcodes().clone();
+        
+        if !(address < opcodes.len()){
+            dbg!("resizing opcodes to size {}", address);
+            opcodes.resize_with(address + 1, || 0); 
+        }
+
+        opcodes[address] = value;
+
+        return self.set_opcodes(opcodes.to_vec());
+
+    }
     pub fn is_halted(&self) -> bool{
         return !(self.address < self.opcodes.len() as i64); 
     }
@@ -60,7 +75,13 @@ impl State {
         return &self.output;
     }
     pub fn clean_output(&self) -> State{
-        return State{input: self.input.clone(), output: None, opcodes: self.opcodes.clone(), address: self.address};
+        return State{
+            input: self.input.clone(), 
+            output: None, 
+            opcodes: self.opcodes.clone(), 
+            address: self.address,
+            relative_base: self.relative_base
+        };
     }
 
     pub fn add_input(&self, input: i64) -> State{
@@ -68,17 +89,44 @@ impl State {
         
         new_input.insert(0, input);
 
-        return State{input: new_input, output: self.output, opcodes: self.opcodes.clone(), address: self.address};
+        return State{
+            input: new_input, 
+            output: self.output, 
+            opcodes: self.opcodes.clone(), 
+            address: self.address,
+            relative_base: self.relative_base
+        };
     }
     fn increment_address(&self, amount: i64) -> State{
         let new_address = self.address + amount;
         return self.set_address(new_address);
     }
     fn set_address(&self, new_address: i64) -> State{
-        return State {input: self.input.clone(), output: self.output, opcodes: self.opcodes.clone(), address: new_address};
+        return 
+            State {
+                input: self.input.clone(), 
+                output: self.output, 
+                opcodes: self.opcodes.clone(), 
+                address: new_address,
+                relative_base: self.relative_base
+            };
     }
     fn set_opcodes(&self, new_opcodes: Vec<i64>) -> State{
-        return State {input: self.input.clone(), output: self.output, opcodes: new_opcodes, address: self.address};
+        return State {
+            input: self.input.clone(), 
+            output: self.output, 
+            opcodes: new_opcodes, 
+            address: self.address,
+            relative_base: self.relative_base
+        };
+    }
+    pub fn update_relative_base(&self, diff: i64) -> State{
+        let mut data = self.clone();
+
+        data.relative_base += diff;
+
+        return data;
+    
     }
     fn execute_instruction(&self, ins: &Instruction)-> State {
         return ins.get_operation().process(self, ins);
@@ -145,5 +193,23 @@ mod tests {
             1001
         );
 
+    }
+    #[test]
+    fn day9_relative_base(){
+        /*
+        let v: Vec<i64> = vec![109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99];
+        assert_eq!(
+            address_counter(&v, &vec![]).output,
+        );
+        */
+        assert_eq!(
+            address_counter(&vec![1102,34915192,34915192,7,4,7,99,0], &vec![]).output.unwrap(),
+            1219070632396864
+        );
+
+        assert_eq!(
+            address_counter(&vec![104,1125899906842624,99], &vec![]).output.unwrap(),
+            1125899906842624
+        );
     }
 }

@@ -1,6 +1,6 @@
 [package]
 name = "intcode_computer"
-version = "0.1.0"
+version = "1.1.0"
 authors = ["felix <felix.hedenstrom@gmail.com>"]
 edition = "2018"
 
