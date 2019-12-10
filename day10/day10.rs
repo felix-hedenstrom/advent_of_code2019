@@ -13,6 +13,63 @@ struct Map{
     width: usize,
     height: usize
 }
+#[derive(Debug, Hash, PartialEq, Clone, Eq, Copy)]
+struct Coord{
+    x: i64,
+    y: i64
+}
+
+impl Coord{
+    fn length(&self) -> f64{
+        return ((self.x * self.x + self.y* self.y) as f64).sqrt();
+    }
+    fn x(&self) -> i64{
+        return self.x;
+    }
+    fn y(&self) -> i64{
+        return self.y
+    }
+    
+    fn new(x: i64, y: i64) -> Coord{
+        return Coord{
+            x: x,
+            y: y
+        };
+    }
+
+    fn relative_prime(&self) -> Coord{
+
+        let d = gcd(self.x, self.y);
+        if d == 0{
+            return Coord::new(0, 0);
+        }
+        return Coord::new(self.x / d, self.y / d);
+    }
+
+    fn delta(&self, other: &Coord) -> Coord{
+        return Coord::new(other.x - self.x, other.y - self.y);
+    }
+    fn scalar_product(&self, other: &Coord) -> i64{
+        return self.x * other.y + self.y * other.x;
+    }
+    fn find_closest_clockwise(&self, candidates: HashSet<Coord>) -> &Coord{
+        let mut best: Option<(f64, &Coord)> = None;
+
+        for c in candidates{
+
+
+            //TODO
+            let p = self.scalar_product(&c);
+
+            if best.map_or(true, |b| p < b.0){
+                best = Some((p, c)) 
+            }
+             
+        }
+
+        return best.unwrap().1;
+    }
+}
 
 
 fn normalize_direction(dir: (i64, i64)) -> (i64, i64){
@@ -63,7 +120,10 @@ impl Map{
 
         return count - 1;
     }
-
+    
+    fn get(&self, c: &Coord) -> char{
+        return self.map[c.y as usize][c.x as usize];
+    }
 
     fn best_location(&self) -> (usize, usize){
         let mut best: Option<(usize, usize)> = None;
@@ -84,35 +144,96 @@ impl Map{
         println!("highest_amount: {}", highest_amount.unwrap());
         return best.expect("did not find any asteroids");
     }
+    
 
-    fn vaporize(&self, laser_position: (usize, usize)) -> (usize, usize){
-        let mut asteroids: HashMap<(i64, i64), Vec<(usize, usize)>> = HashMap::new(); 
+    fn vaporize(&self, laser_position: Coord, asteroids_to_kill: usize) -> Coord{
+        fn vaporize_internal(mut ast: HashMap<Coord, HashSet<Coord>>, laser_position: &Coord, asteroids_to_kill: usize) -> Coord {
+            fn kill_asteroid(ast: &HashMap<Coord, HashSet<Coord>>, laser_position: &Coord, last_asteroid: Option<Coord>) -> (HashSet<Coord>, Coord){
+                fn remove_closest(laser_position: &Coord, ast_in_relative_direction: &HashSet<Coord>) -> (HashSet<Coord>, Coord){
+                    let mut closest: Option<f64> = None;
+                    let mut closest_asteroid: Option<&Coord> = None;
+                    let mut new_closest: HashSet<Coord> = ast_in_relative_direction.clone();
+
+                    for a in ast_in_relative_direction{
+                        let distance = a.delta(laser_position).length();
+
+                        if closest.map_or(true, |c| distance < c){
+                            closest = Some(distance);
+                            closest_asteroid = Some(&a);
+                        }
+                    }
+                    
+                       
+                    new_closest.remove(closest_asteroid.expect("recieved a location without any entries"));
+                    return (new_closest, *closest_asteroid.unwrap());
+                }
+
+                return match last_asteroid{
+                    None => 
+                        remove_closest(
+                            laser_position, 
+                            &ast[&Coord::new(0, -1)]
+                        ), 
+                    Some(la) => 
+                        remove_closest(
+                            laser_position, 
+                            &ast[
+                                &la
+                                .find_closest_clockwise(
+                                    ast
+                                    .keys()
+                                    .collect()
+                                )
+                            ]
+                        ) 
+                };
+                 
+            }
+
+            let (neighbors, latest_killed): (HashSet<Coord>, Coord) = kill_asteroid(&ast, laser_position, None);
+
+            ast.insert(latest_killed, neighbors);
+
+            for _i in 0..asteroids_to_kill{
+                let (neighbors, latest_killed) = kill_asteroid(&ast, laser_position, Some(latest_killed));
+                println!("{}: killed {:?}", _i, latest_killed);
+                ast.insert(latest_killed.clone(), neighbors);
+            }
+
+            return latest_killed;
+
+        }
+
+        let mut asteroids: HashMap<Coord, HashSet<Coord>> = HashMap::new(); 
 
         for x in 0..self.width{
             for y in 0..self.height{
+                let c = Coord::new(x as i64, y as i64); 
                 if 
-                    self.map[y][x] == '#' && 
-                    x != laser_position.0 && 
-                    y != laser_position.1 {
+                    self.get(&c) == '#' &&  
+                    c != laser_position{
                     
-                    let normalized_direction = normalize_direction((x as i64 - laser_position.0 as i64, y as i64 - laser_position.1 as i64));
-                    let mut asteroids_in_direction: Vec<(usize, usize)> = asteroids.get(&normalized_direction).unwrap_or(&vec![]).to_vec();
+                    let normalized_direction = laser_position.delta(&c).relative_prime();
+                    let mut asteroids_in_direction: HashSet<Coord> = 
+                        asteroids
+                        .get(&normalized_direction)
+                        .unwrap_or(
+                            &HashSet::new()
+                        )
+                        .clone();
 
-                    asteroids_in_direction.push((x,y));
 
-                    asteroids.insert(normalized_direction, asteroids_in_direction.to_vec()); 
+                    asteroids_in_direction.insert(c);
+
+                    asteroids.insert(normalized_direction, asteroids_in_direction); 
                 }
             }
         }
 
         println!("{:?}", asteroids);
-        return laser_position;
+        return vaporize_internal(asteroids, &laser_position, asteroids_to_kill);
 
 
-    }
-
-    fn get(&self, x: usize, y: usize) -> char{
-        return self.map[x][y];
     }
 }
 
@@ -121,7 +242,7 @@ fn main (){
 
     let m = Map::parse(&io_input);
     
-    println!("{:?}", m.best_location());
-    println!("{:?}", m.vaporize((3,4)));
+    //println!("{:?}", m.best_location());
+    println!("{:?}", m.vaporize(Coord::new(11,13), 200));
 
 }

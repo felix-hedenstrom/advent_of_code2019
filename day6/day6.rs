@@ -8,8 +8,6 @@ fn read_stdin() -> String{
 	return buffer;
 }
 
-
-
 #[derive(Debug, Clone)]
 struct Orbit{
     body: String,
