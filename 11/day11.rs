@@ -44,6 +44,12 @@ impl Coord{
             y: y
         };
     }
+    fn get_x(&self) -> i64{
+        return self.x;
+    }
+    fn get_y(&self) -> i64{
+        return self.y;
+    }
 }
 
 struct RobotSim{
@@ -53,6 +59,47 @@ struct RobotSim{
 }
 
 impl RobotSim{
+    fn print(&self){
+        println!("Printing map");
+        let minx = self.locations
+            .keys()
+            .map(|c|
+                c.get_x()
+            ).min().unwrap();
+        let maxx = self.locations
+            .keys()
+            .map(|c|
+                c.get_x()
+            ).max().unwrap();
+        let miny = self.locations
+            .keys()
+            .map(|c|
+                c.get_y()
+            ).min().unwrap();
+        let maxy = self.locations
+            .keys()
+            .map(|c|
+                c.get_x()
+            ).max().unwrap();
+        println!("minx: {}, maxx: {}", minx, maxx);
+        let mut yvals: Vec<i64> = (miny..maxy).collect();
+        yvals.reverse();
+
+        for j in yvals{
+            for i in minx..maxx{
+                print!("{}", 
+                    match self.locations.get(&Coord::new(i, j)).unwrap_or(&0){
+                        0 => '#',
+                        1 => '.',
+                        _ => panic!("this was not supposed to happen!")
+                    }
+                )
+            }
+
+            println!();
+        }
+    }
+
     fn new() -> RobotSim{
         return RobotSim{
             robot_pos: Coord::new(0,0),
@@ -75,6 +122,7 @@ fn count_visited(s: &mut State) -> usize{
 
     let mut rs = RobotSim::new();
 
+    rs.locations.insert(rs.robot_pos.clone(), 1);
     loop { 
         s.add_input(*rs.locations.get(&rs.robot_pos).unwrap_or(&0) as i64);
 
@@ -83,6 +131,7 @@ fn count_visited(s: &mut State) -> usize{
         s.clear_output();
 
         if output.len() != 2{
+            rs.print();
             break;
         }
 
@@ -92,9 +141,9 @@ fn count_visited(s: &mut State) -> usize{
         rs.locations.insert(rs.robot_pos.clone(), color as i8);
         rs.dir = rs.dir.turn(new_direction as u8);
 
-        println!("Direction: {}", rs.dir.dir);
+        //println!("Direction: {}", rs.dir.dir);
         rs.move_bot();
-        println!("Second position: {:?}", rs.robot_pos.clone());
+        //println!("Second position: {:?}", rs.robot_pos.clone());
 
     }
 
