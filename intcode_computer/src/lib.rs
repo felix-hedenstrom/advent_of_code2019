@@ -50,6 +50,21 @@ impl State {
         }
 
     }
+
+    pub fn process_until(&mut self, outputs: usize){
+
+        loop {
+            let inst = 
+                match Instruction::new(&self.address, &self.opcodes){
+                    Some(i) => i,
+                    None => return
+                };
+            self.execute_instruction(&inst);
+            if self.output.len() == outputs{
+                return
+            }
+        }
+    }
     
     fn write(&mut self, address: usize, value: i64){
         
@@ -71,6 +86,9 @@ impl State {
 
     pub fn get_output(&self) -> &Vec<i64>{
         return &self.output;
+    }
+    pub fn clear_output(&mut self){
+        return self.clean_output();
     }
     pub fn clean_output(&mut self){
         self.output = vec![];
