@@ -136,7 +136,7 @@ fn check_loops(planets: &Vec<CBody>, has_looped: &mut Vec<bool>, steps: &usize){
 fn simulate(planets: Vec<CBody>) -> Vec<CBody>{
     let mut new_planets = planets.clone();
     let mut steps: usize = 0;
-    let mut has_looped: Vec<bool> = planets.iter().map(|_| false).collect();
+    let mut has_looped: Vec<bool> = vec![false,false,false];
 
     loop{
         new_planets = update_velocities(new_planets); 
@@ -144,6 +144,11 @@ fn simulate(planets: Vec<CBody>) -> Vec<CBody>{
         steps += 1;
 
         check_loops(&new_planets, &mut has_looped, &steps);
+
+        if has_looped.iter().filter(|b| !(**b)).count() == 0{
+        
+            return new_planets;
+        }
 
     }
 
