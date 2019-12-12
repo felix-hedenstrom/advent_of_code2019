@@ -1,7 +1,6 @@
 use std::io::{self, Read};
 
 use regex::Regex;
-use std::collections::HashSet;
 
 fn read_stdin() -> String{
 	let mut buffer = String::new();
@@ -106,22 +105,46 @@ fn move_planets(planets: &mut Vec<CBody>){
     }
 }
 
+fn check_loops(planets: &Vec<CBody>, has_looped: &mut Vec<bool>, steps: &usize){
+    if !has_looped[0] && planets.iter()
+        .filter(
+            |p|
+            p.velocity.x != 0
+        ).count() == 0{
+        println!("x looped at {}", steps);
+        has_looped[0] = true;
+    }
+    if !has_looped[1] && planets.iter()
+        .filter(
+            |p|
+            p.velocity.y != 0
+        ).count() == 0{
+        println!("y looped at {}", steps);
+        has_looped[1] = true;
+    }
+    if !has_looped[2] && planets.iter()
+        .filter(
+            |p|
+            p.velocity.z != 0
+        ).count() == 0{
+        println!("z looped at {}", steps);
+        has_looped[2] = true;
+    }
+    
+}
+
 fn simulate(planets: Vec<CBody>) -> Vec<CBody>{
     let mut new_planets = planets.clone();
-    let mut previous_state = HashSet::new();
     let mut steps: usize = 0;
-    previous_state.insert(new_planets.clone());
+    let mut has_looped: Vec<bool> = planets.iter().map(|_| false).collect();
 
     loop{
         new_planets = update_velocities(new_planets); 
         move_planets(&mut new_planets);
         steps += 1;
 
-        if previous_state.contains(&new_planets){
-            println!("{}", steps);
-            return planets;
-        }
-        previous_state.insert(new_planets.clone());
+        check_loops(&new_planets, &mut has_looped, &steps);
+
     }
 
 }
