@@ -12,6 +12,11 @@ pub struct State{
     relative_base: i64
 }
 
+pub struct HaltState{
+    WaitingForInput,
+    Done
+}
+
 pub fn address_counter(opcodes: &Vec<i64>, input: &Vec<i64>) -> State {
     let mut s = State::new(opcodes, input);
 
@@ -38,7 +43,7 @@ impl State {
         }; 
     }
 
-    pub fn process(&mut self) {
+    pub fn process(&mut self) -> HaltState{
 
         loop {
             let inst = 
@@ -76,6 +81,7 @@ impl State {
         self.opcodes[address] = value;
 
     }
+
     pub fn is_halted(&self) -> bool{
         return !(self.address < self.opcodes.len() as i64); 
     }
@@ -118,7 +124,6 @@ impl State {
     
     }
     fn execute_instruction(&mut self, ins: &Instruction){
-
         ins.get_operation().process(self, ins);
     }
 }
