@@ -60,13 +60,14 @@ impl State {
                     None => return
                 };
             self.execute_instruction(&inst);
+
             if self.output.len() == outputs{
                 return
             }
         }
     }
     
-    fn write(&mut self, address: usize, value: i64){
+    pub fn write(&mut self, address: usize, value: i64){
         
         if !(address < self.opcodes.len()){
             self.opcodes.resize_with(address + 1, || 0); 
@@ -82,6 +83,9 @@ impl State {
     #[allow(dead_code)]
     pub fn get_input(&self) -> &Vec<i64>{
         return &self.input;
+    }
+    pub fn set_input(&mut self, inp: Vec<i64>){
+        self.input = inp;
     }
 
     pub fn get_output(&self) -> &Vec<i64>{
