@@ -12,7 +12,8 @@ pub struct State{
     relative_base: i64
 }
 
-pub struct HaltState{
+#[derive(Debug)]
+pub enum HaltState{
     WaitingForInput,
     Done
 }
@@ -21,6 +22,7 @@ pub fn address_counter(opcodes: &Vec<i64>, input: &Vec<i64>) -> State {
     let mut s = State::new(opcodes, input);
 
     s.process();
+
     return s; 
 }
 
@@ -49,9 +51,13 @@ impl State {
             let inst = 
                 match Instruction::new(&self.address, &self.opcodes){
                     Some(i) => i,
-                    None => return
+                    None => return HaltState::Done
                 };
-            self.execute_instruction(&inst);
+
+            match self.execute_instruction(&inst){
+                Some(hs) => return hs,
+                None => ()
+            }
         }
 
     }
@@ -118,13 +124,11 @@ impl State {
 
     }
     pub fn update_relative_base(&mut self, diff: i64){
-
         self.relative_base += diff;
-
     
     }
-    fn execute_instruction(&mut self, ins: &Instruction){
-        ins.get_operation().process(self, ins);
+    fn execute_instruction(&mut self, ins: &Instruction) -> Option<HaltState>{
+        return ins.get_operation().process(self, ins);
     }
 }
 
@@ -188,6 +192,13 @@ mod tests {
             vec![1001]
         );
 
+    }
+    #[test]
+    fn day5_equal_to_eight(){
+        assert_eq!(
+            address_counter(&vec![3,9,8,9,10,9,4,9,99,-1,8], &vec![8]).output, 
+            vec![1] 
+        );
     }
     #[test]
     fn day9_relative_base(){

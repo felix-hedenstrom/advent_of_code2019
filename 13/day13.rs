@@ -3,7 +3,7 @@ use std::io::{self, Read};
 extern crate intcode_computer;
 
 use std::collections::HashMap;
-use intcode_computer::State;
+use intcode_computer::{HaltState, State};
 
 #[derive(Debug, PartialEq)]
 enum Tile{
@@ -12,6 +12,46 @@ enum Tile{
     Block,
     HorizontalPaddle,
     Ball
+}
+
+struct Board{
+    board: HashMap<(i64, i64), Tile>,
+    ball_location:  (i64, i64),
+    paddle_location: (i64, i64),
+    minx: i64,
+    maxx: i64,
+    miny: i64,
+    maxy: i64
+}
+
+impl Board{
+    fn print(&self) {
+        for j in self.miny..(self.maxy + 1) {
+            for i in self.minx..(self.maxx + 1) {
+                print!("{}", self.board.get(&(i,j)).unwrap().to_char());
+            }
+            println!();
+        }
+    }
+
+    fn update(&mut self, output: &Vec<i64> ){
+
+
+        for i in (0..(output.len())).step_by(3){
+            let point = (output[i], output[i + 1]);
+            if point != (-1, 0) {
+                if Tile::new(output[i + 2]) == Tile::Ball{
+                    self.ball_location = point;
+                }
+                if Tile::new(output[i + 2]) == Tile::HorizontalPaddle{
+                    self.paddle_location = point;
+                }
+                self.board.insert(point, Tile::new(output[i+2]));
+            }
+        }
+        
+    }
+
 }
 
 impl Tile{
@@ -39,10 +79,11 @@ impl Tile{
 
 trait Playable{
     fn number_of_blocks(&self) -> usize;
-    fn play_input(&mut self, input: Vec<i64>, game_size: &usize);
-    fn print_game(&self);
+    fn play_input(&mut self, input: i64) -> HaltState;
+    fn get_board(&self) -> Board;
     fn init(&mut self);
     fn to_pointmap(&self) -> HashMap<(i64, i64), Tile>;
+    fn score(&self) -> i64;
 }
 
 
@@ -63,10 +104,24 @@ impl Playable for State{
             Tile::new(output[*i]) == Tile::Block 
         ).count()
     }
-    fn play_input(&mut self, input: Vec<i64>, game_size: &usize){
+
+    fn play_input(&mut self, input: i64) -> HaltState {
         self.clear_output();
-        self.set_input(input);
-        self.process_until(*game_size + 1);
+        self.set_input(vec![input]);
+        return self.process();
+    }
+
+    fn score(&self) -> i64{
+        let output = self.get_output(); 
+
+        for i in (0..(output.len())).step_by(3){
+            let point = (output[i], output[i + 1]);
+            if point == (-1, 0){
+                return output[i + 2];
+            }
+        }
+        return 0;
+        
     }
 
     fn to_pointmap(&self) -> HashMap<(i64, i64), Tile>{
@@ -82,51 +137,67 @@ impl Playable for State{
             if point != (-1, 0){
                 points.insert(point, Tile::new(output[i + 2]));
             }
-            println!("score: {}", output[i+2]);
         }
 
         return points;
     }
-    fn print_game(&self){
+    fn get_board(&self) -> Board{
         let points = self.to_pointmap();
 
         let minx = points.keys().map(|p| p.0).min().expect("did not find ANY values in the state");
         let maxx = points.keys().map(|p| p.0).max().unwrap();
         let miny = points.keys().map(|p| p.1).min().unwrap();
         let maxy = points.keys().map(|p| p.1).max().unwrap();
+        
+        let mut ball_position: Option<(i64, i64)> = None;
+        let mut horizontal_position: Option<(i64, i64)> = None;
 
-        let yvals: Vec<i64> = (miny..(maxy + 1)).collect();
-        //yvals.reverse();
-
-        for j in yvals{
-            for i in minx..(maxx + 1){
-                print!("{}", points.get(&(i,j)).unwrap_or(&Tile::Empty).to_char());
+        for (k, v) in &points{
+            if *v == Tile::Ball{
+                ball_position = Some(k.clone());
             }
-            println!();
+            if *v == Tile::HorizontalPaddle{
+                horizontal_position = Some(k.clone());
+            }
         }
+
+        if ball_position.is_none(){
+            panic!("didn't find any ball");
+        }
+
+        return Board{board: points, minx: minx, maxx: maxx, miny: miny, maxy: maxy, ball_location: ball_position.unwrap(), paddle_location: horizontal_position.expect("no paddle was found")};
+
+        
     }
 }
 
-fn find_input(s: &State) -> i64{
+fn find_input(b: &Board) -> i64{
+    if b.ball_location.0 < b.paddle_location.0{
+        return -1;
+    }else if b.ball_location.0 > b.paddle_location.0{
+        return 1;
+    }
+
     return 0;
 }
 
+
 fn play_game(mut s: State){
-    let mut game_clone = s.clone();
-    game_clone.process();
-    let game_size: usize = game_clone.get_output().len(); 
-    
-    let mut best_input = find_input(&game_clone);
     
     s.init();
+    s.play_input(0);
+
+    let mut board: Board = s.get_board();
 
     loop {
-        s.play_input(vec![0], &(game_size + 1));
-        if s.get_output().len() == 0{
-            break;
-        }
-        dbg!(s.get_output().len());
-        best_input = find_input(&s);
+        match s.play_input(find_input(&board)){
+            HaltState::Done => {println!("score: {}", s.score()); break} ,
+            HaltState::WaitingForInput => () 
+        };
+
+
+        board.update(&s.get_output());
+        board.print(); 
     }
 
     
