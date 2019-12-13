@@ -1,9 +1,10 @@
-use std::io::{self, Read};
+use std::io::{self, Read, stdout, Write};
 
 extern crate intcode_computer;
 
 use std::collections::HashMap;
 use intcode_computer::{HaltState, State};
+use std::{thread, time};
 
 #[derive(Debug, PartialEq)]
 enum Tile{
@@ -26,12 +27,15 @@ struct Board{
 
 impl Board{
     fn print(&self) {
+        std::process::Command::new("clear").status().unwrap().success();
+        stdout().flush().unwrap();
         for j in self.miny..(self.maxy + 1) {
             for i in self.minx..(self.maxx + 1) {
                 print!("{}", self.board.get(&(i,j)).unwrap().to_char());
             }
             println!();
         }
+        stdout().flush().unwrap();
     }
 
     fn update(&mut self, output: &Vec<i64> ){
@@ -67,11 +71,11 @@ impl Tile{
     }
     fn to_char(&self) -> char{
         return match self {
-            Tile::Empty => '_',
-            Tile::Wall => '|',
-            Tile::Block => '#',
-            Tile::HorizontalPaddle => '-',
-            Tile::Ball => '@'
+            Tile::Empty => ' ',
+            Tile::Wall => '⧛',
+            Tile::Block => '█',
+            Tile::HorizontalPaddle => '⎯',
+            Tile::Ball => '⊙'
         }
     }
 
@@ -195,8 +199,10 @@ fn play_game(mut s: State){
             HaltState::WaitingForInput => () 
         };
 
-
         board.update(&s.get_output());
+
+        thread::sleep(time::Duration::from_millis(80));
+
         board.print(); 
     }
 
